@@ -7,12 +7,12 @@ Interactive web-based NDVI Change Detection demo app using Leaflet.js &amp; Java
 ndvi-change-detection-demo/
 │
 ├── index.html                  # Main HTML entry point
-├── README.md                   # Project description and basic documentation
-├── .gitignore                  # Git ignore rules (optional)
-├── assets/                     # Images, logos, sample data, etc.
+├── README.md                   
+├── .gitignore                  
+├── assets/                     
 │   └── sample-data/            # Example satellite images for testing
-│       ├── before.png
-│       └── after.png
+│       ├── before.tif
+│       └── after.tif
 ├── css/                        # CSS styles
 │   └── styles.css
 └── js/                         # JavaScript files
