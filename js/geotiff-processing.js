@@ -1,15 +1,19 @@
-async function readgeoTIFF(file) {
+async function readGeoTIFF(file) {
     const arrayBuffer = await file.arrayBuffer();
     const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
-    const image = await tidd.getImage();
+    const image = await tiff.getImage();
 
     const rasters = await image.readRasters();
     const width = image.getWidth();
     const height = image.getHeight();
 
-    // Extract geotiff metadata
-    const bbox = image.getBoundingBox(); // [xmin, ymin, xmax, ymax] in UTM
-    const crs = image.getGeoKeys().ProjectedCSTypeGeoKey; 
+    const bbox = image.getBoundingBox(); 
+    const geoKeys = image.getGeoKeys();
+
+    console.log("GeoTIFF GeoKeys:", geoKeys); // Debug CRS info
+    console.log("Bounding Box (UTM):", bbox); 
+
+    const crs = geoKeys.ProjectedCSTypeGeoKey;
 
     return { rasters, width, height, bbox, crs };
 }
