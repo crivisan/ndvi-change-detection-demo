@@ -1,29 +1,34 @@
 // Placeholder NDVI calculation
-function calculateNDVIChange(beforeImg, afterImg) {
-    Promise.all([
-        loadImage(beforeImgSrc),
-        loadImage(afterImgSrc)
-    ]).then(([beforeImg, afterImg]) => {
-        const beforeNDVI = calculateNDVI(beforeImg);
-        const afterNDVI = calculateNDVI(afterImg);
+async function calculateNDVIChange(beforeFile, afterFile) {
+    const before = await readGeoTIFF(beforeFile);
+    const after = await readGeoTIFF(afterFile);
 
-        // Compute NDVI difference (after - before)
-        const diffNDVI = afterNDVI.map((val, idx) => val - beforeNDVI[idx]);
+    const width = before.width;
+    const height = before.height;
 
-        // Visualize NDVI difference as overlay
-        renderNDVIToMap(diffNDVI, beforeImg.width, beforeImg.height);
-    });
+    // Assuming Sentinel-2: Band 4 (Red), Band 8 (NIR)
+    const beforeRed = before.rasters[3];  // Band 4
+    const beforeNIR = before.rasters[7];  // Band 8
+
+    const afterRed = after.rasters[3];  
+    const afterNIR = after.rasters[7];
+
+    let ndviDiff = new Float32Array(width * height);
+
+    for (let i = 0; i < ndviDiff.length; i++) {
+        const beforeNDVI = (beforeNIR[i] - beforeRed[i]) / (beforeNIR[i] + beforeRed[i] + 0.0001);
+        const afterNDVI = (afterNIR[i] - afterRed[i]) / (afterNIR[i] + afterRed[i] + 0.0001);
+        ndviDiff[i] = afterNDVI - beforeNDVI;
+    }
+
+    // Convert bounding box
+    const bounds = convertBboxToWGS84(before.bbox, before.crs);
+
+    // Render NDVI difference to map
+    renderNDVIToMap(ndviDiff, width, height, bounds);
 }
 
-// load an image and draw o a hidden canvas
-function loadImage(src) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.onload = () => resolve(img);
-        img.src = src;
-    })
-}
+
 
 // Calculate NDVI from an Image (simplified version)
 function calculateNDVI(image) {
@@ -51,40 +56,36 @@ function calculateNDVI(image) {
 }
 
 // Visualize NDVI result on Leaflet map
-function renderNDVIToMAp(ndviData, width, height) {
+function renderNDVIToMap(ndviData, width, height, bounds) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     const imageData = ctx.createImageData(width, height);
 
-    for (let i = 0, j = 0; i < ndviData.length; i++, j+=4) {
+    for (let i = 0, j = 0; i < ndviData.length; i++, j += 4) {
         const ndvi = ndviData[i];
         let color = [0, 0, 0];
 
-        // simple coloring scheme (red-green)
         if (ndvi > 0) {
-            color = [0, Math.min(255, ndvi* 255), 0]; //green for positiv NDVI
+            color = [0, Math.min(255, ndvi * 255), 0];
         } else {
-            color = [Math.min(255, Math.abs(ndvi) * 255), 0, 0] // red for negativ NDVI
+            color = [Math.min(255, Math.abs(ndvi) * 255), 0, 0];
         }
 
-        imageData.data[j] = color[0]; //red
-        imageData.data[j + 1] = color[1]; // green
-        imageData.data[j + 2] = color[2]; //blue
-        imageData.data[j + 3] = 150; // alpha 
+        imageData.data[j] = color[0];
+        imageData.data[j + 1] = color[1];
+        imageData.data[j + 2] = color[2];
+        imageData.data[j + 3] = 150;
     }
-    ctx.putImageData(imageData, 0, 0);
 
+    ctx.putImageData(imageData, 0, 0);
     const imgUrl = canvas.toDataURL();
 
-    //clear previous layers
     if (window.ndviLayer) {
         map.removeLayer(window.ndviLayer);
     }
 
-    // Overlay the results on Leadflet map
-    const bounds = [[-90, -180], [90, 180]]; // Global bounds
     window.ndviLayer = L.imageOverlay(imgUrl, bounds).addTo(map);
     map.fitBounds(bounds);
 }

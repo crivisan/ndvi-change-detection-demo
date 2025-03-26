@@ -37,8 +37,11 @@ afterInput.addEventListener('change', (event) => {
 });
 
 calculateBtn.addEventListener('click', () => {
-    if (beforeImageData && afterImageData) {
-        calculateNDVIChange(beforeImageData, afterImageData);
+    const beforeFile = beforeInput.files[0];
+    const afterFile = afterInput.files[0];
+
+    if (beforeFile && afterFile) {
+        calculateNDVIChange(beforeFile, afterFile);
     } else {
         alert("Please upload both images first!");
     }
